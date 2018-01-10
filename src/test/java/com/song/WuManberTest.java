@@ -11,7 +11,7 @@ import org.junit.Test;
 public class WuManberTest {
 
     private static final String[] words = new String[] {
-        "google","apple","test","asdasd","nihao","ceshi","haha"
+        "google", "apple", "test", "asdasd", "nihao", "ceshi", "haha", "我是是是", "你好啊"
     };
 
     @Test
@@ -20,8 +20,10 @@ public class WuManberTest {
         List<WordMatch> list = new LinkedList<>();
         Arrays.stream(words)
             .forEach(s -> list.add(new WordMatch(s)));
-        search.Initialize(list, false, false, false);
-        System.out.println(search.Search("Apple fucking sucks!"));
+        search.Initialize(list);
+        System.out.println(search.Search("apple fucking sucks!"));
+        System.out.println(search.Search("我是是是asasd"));
+        System.out.println(search.Search("你好啊"));
     }
 
 }

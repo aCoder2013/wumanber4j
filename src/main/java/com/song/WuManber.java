@@ -12,7 +12,7 @@ public class WuManber {
 
     private static final int B = 3;
 
-    private Alphabet[] m_lu = new Alphabet[256];
+    private Map<Integer, Alphabet> m_lu = new HashMap<>();
 
     private List<WordMatch> _patterns;
 
@@ -41,8 +41,7 @@ public class WuManber {
     private int[] m_ShiftTable;
     private Map<Integer, List<PatternMap>> m_vPatternMap = new HashMap<>();
 
-    public void Initialize(List<WordMatch> patterns, boolean bCaseSensitive,
-        boolean bIncludeSpecialCharacters, boolean bIncludeExtendedAscii) throws Exception {
+    public void Initialize(List<WordMatch> patterns) throws Exception {
         _patterns = patterns;
         k = patterns.size();
         m = 0; // start with 0 and grow from there
@@ -55,50 +54,28 @@ public class WuManber {
 
         m_nSizeOfAlphabet = (char) 1; // at minimum we have a white space character
         for (int i = 0; i <= 255; ++i) {
-            m_lu[i] = new Alphabet();
-            m_lu[i].Letter = ' '; // table is defaulted to whitespace
-            m_lu[i].Offset = (char) 0;  //
+            m_lu.put(i, new Alphabet());
+            m_lu.get(i).Letter = ' '; // table is defaulted to whitespace
+            m_lu.get(i).Offset = (char) 0;  //
             if ((i >= 'a') && (i <= 'z')) {
-                m_lu[i].Letter = (char) i; // no problems with lower case letters
-                m_lu[i].Offset = m_nSizeOfAlphabet++;
-            }
-            if (bCaseSensitive) {
-                // case of !bCaseSensitive fixed up later on
-                if ((i >= 'A') && (i <= 'Z')) {
-                    m_lu[i].Letter = (char) i; // map upper case to lower case
-                    m_lu[i].Offset = m_nSizeOfAlphabet++;
-                }
+                m_lu.get(i).Letter = (char) i; // no problems with lower case letters
+                m_lu.get(i).Offset = m_nSizeOfAlphabet++;
             }
             if ((i >= '0') && (i <= '9')) {
-                m_lu[i].Letter = (char) i; // use digits
-                m_lu[i].Offset = m_nSizeOfAlphabet++;
+                m_lu.get(i).Letter = (char) i; // use digits
+                m_lu.get(i).Offset = m_nSizeOfAlphabet++;
             }
         }
 
-        if (!bCaseSensitive) {
-            // fix up upper case mappings ( uppercase comes before lower case in ascii table )
-            for (int i = (short) 'A'; i <= 'Z'; ++i) {
-                char letter = (char) (i - (short) 'A' + (short) 'a');  // map upper case to lower case
-                m_lu[i].Letter = letter; // map upper case to lower case
-                m_lu[i].Offset = m_lu[letter].Offset;
-                // no unique characters so don't increment size
+        for (WordMatch pattern : patterns) {
+            for (char c : pattern.getWord().toCharArray()) {
+                if (!m_lu.containsKey((int) c)) {
+                    m_lu.put((int) c, new Alphabet());
+                }
+                m_lu.get((int) c).Letter = c;
+                m_lu.get((int) c).Offset = m_nSizeOfAlphabet++;
             }
         }
-
-        if (bIncludeSpecialCharacters) {
-            for (char c : rchSpecialCharacters) {
-                m_lu[c].Letter = c;
-                m_lu[c].Offset = m_nSizeOfAlphabet++;
-            }
-        }
-
-        if (bIncludeExtendedAscii) {
-            for (char c : rchExtendedAscii) {
-                m_lu[c].Letter = c;
-                m_lu[c].Offset = m_nSizeOfAlphabet++;
-            }
-        }
-
         m_nBitsInShift = (short) Math.ceil(Math.log((double) m_nSizeOfAlphabet) / Math.log((double) 2));
 
         m_nTableSize = (int) Math.pow(Math.pow((double) 2, m_nBitsInShift), B);
@@ -116,19 +93,19 @@ public class WuManber {
             // loop through patterns
             for (int q = m; q >= B; --q) {
                 int hash;
-                hash = m_lu[patterns.get(j).getWord().toCharArray()[q - 2 - 1]].Offset; // bring in offsets of X in pattern j
+                hash = m_lu.get((int) patterns.get(j).getWord().toCharArray()[q - 2 - 1]).Offset; // bring in offsets of X in pattern j
                 hash <<= m_nBitsInShift;
-                hash += m_lu[patterns.get(j).getWord().toCharArray()[q - 1 - 1]].Offset;
+                hash += m_lu.get((int) patterns.get(j).getWord().toCharArray()[q - 1 - 1]).Offset;
                 hash <<= m_nBitsInShift;
-                hash += m_lu[patterns.get(j).getWord().toCharArray()[q - 1]].Offset;
+                hash += m_lu.get((int) patterns.get(j).getWord().toCharArray()[q - 1]).Offset;
                 int shiftlen = m - q;
                 m_ShiftTable[hash] = Math.min(m_ShiftTable[hash], shiftlen);
                 if (0 == shiftlen) {
                     PatternMap m_PatternMapElement = new PatternMap();
                     m_PatternMapElement.Index = j;
-                    m_PatternMapElement.PrefixHash = m_lu[patterns.get(j).getWord().toCharArray()[0]].Offset;
+                    m_PatternMapElement.PrefixHash = m_lu.get((int) patterns.get(j).getWord().toCharArray()[0]).Offset;
                     m_PatternMapElement.PrefixHash <<= m_nBitsInShift;
-                    m_PatternMapElement.PrefixHash += m_lu[patterns.get(j).getWord().toCharArray()[1]].Offset;
+                    m_PatternMapElement.PrefixHash += m_lu.get((int) patterns.get(j).getWord().toCharArray()[1]).Offset;
                     if (!m_vPatternMap.containsKey(hash))
                         m_vPatternMap.put(hash, new ArrayList<>());
                     m_vPatternMap.get(hash).add(m_PatternMapElement);
@@ -144,20 +121,20 @@ public class WuManber {
             int length = text.length();
             while (ix < length) {
                 int hash1;
-                hash1 = m_lu[text.toCharArray()[ix - 2]].Offset;
+                hash1 = m_lu.get((int) text.toCharArray()[ix - 2]).Offset;
                 hash1 <<= m_nBitsInShift;
-                hash1 += m_lu[text.toCharArray()[ix - 1]].Offset;
+                hash1 += m_lu.get((int) text.toCharArray()[ix - 1]).Offset;
                 hash1 <<= m_nBitsInShift;
-                hash1 += m_lu[text.toCharArray()[ix]].Offset;
+                hash1 += m_lu.get((int) text.toCharArray()[ix]).Offset;
                 int shift = m_ShiftTable[hash1];
                 if (shift > 0) {
                     ix += shift;
                 } else {
                     // we have a potential match when shift is 0
                     int hash2;  // check for matching prefixes
-                    hash2 = m_lu[text.toCharArray()[ix - m + 1]].Offset;
+                    hash2 = m_lu.get((int) text.toCharArray()[ix - m + 1]).Offset;
                     hash2 <<= m_nBitsInShift;
-                    hash2 += m_lu[text.toCharArray()[ix - m + 2]].Offset;
+                    hash2 += m_lu.get((int) text.toCharArray()[ix - m + 2]).Offset;
                     List<PatternMap> element = m_vPatternMap.get(hash1);
                     for (int iter = 0; iter < element.size(); iter++) {
                         if (hash2 == element.get(iter).PrefixHash) {
@@ -170,7 +147,7 @@ public class WuManber {
                             int patternLength = ixPattern.length();
                             while (target < targetLength && pattern < patternLength) {
                                 // match until we reach end of either string
-                                if (m_lu[ixTarget.toCharArray()[target]].Letter == m_lu[ixPattern.toCharArray()[pattern]].Letter) {
+                                if (m_lu.get((int) ixTarget.toCharArray()[target]).Letter == m_lu.get((int) ixPattern.toCharArray()[pattern]).Letter) {
                                     // match against chosen case sensitivity
                                     ++target;
                                     ++pattern;

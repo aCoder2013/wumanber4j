@@ -20,10 +20,10 @@ public class WuManberTest {
         List<WordMatch> list = new LinkedList<>();
         Arrays.stream(words)
             .forEach(s -> list.add(new WordMatch(s)));
-        search.Initialize(list);
-        System.out.println(search.Search("apple fucking sucks!"));
-        System.out.println(search.Search("我是是是asasd"));
-        System.out.println(search.Search("你好啊"));
+        search.initialize(list);
+        System.out.println(search.search("apple fucking sucks!"));
+        System.out.println(search.search("我是是是asasd"));
+        System.out.println(search.search("你好啊"));
     }
 
 }

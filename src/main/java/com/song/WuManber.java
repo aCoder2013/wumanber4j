@@ -41,7 +41,7 @@ public class WuManber {
     private int[] m_ShiftTable;
     private Map<Integer, List<PatternMap>> m_vPatternMap = new HashMap<>();
 
-    public void Initialize(List<WordMatch> patterns) throws Exception {
+    public void initialize(List<WordMatch> patterns) throws Exception {
         _patterns = patterns;
         k = patterns.size();
         m = 0; // start with 0 and grow from there
@@ -115,7 +115,7 @@ public class WuManber {
         m_bInitialized = true;
     }
 
-    public WordMatch Search(String text) {
+    public WordMatch search(String text) {
         if (m_bInitialized) {
             int ix = m - 1; // start off by matching end of largest common pattern
             int length = text.length();
